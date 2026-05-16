@@ -96,8 +96,24 @@ impl MemoirEngine {
 
     /// Regenerate the memoir for the module containing `path`. Writes
     /// atomically and returns the rendered markdown.
+    ///
+    /// Refuses paths that don't exist anywhere under the repo so an MCP
+    /// tool call against a phantom path can't scaffold a ghost module.
     pub fn update_for_path(&self, path: &Path) -> Result<String> {
+        let abs = if path.is_absolute() {
+            path.to_path_buf()
+        } else {
+            self.config.repo_root.join(path)
+        };
+        let parent = abs.parent().unwrap_or(&self.config.repo_root);
+        if !abs.exists() && !parent.exists() {
+            return Err(Error::ModuleNotFound(path.to_path_buf()));
+        }
         let module_dir = self.indexer.module_for_path(path)?;
+        let module_abs = self.config.repo_root.join(&module_dir);
+        if !module_abs.exists() {
+            return Err(Error::ModuleNotFound(path.to_path_buf()));
+        }
         self.update_module(&module_dir)
     }
 
