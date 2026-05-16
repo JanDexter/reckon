@@ -21,6 +21,22 @@ pub use error::{Error, Result};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+/// Walk up from `start` looking for a directory that contains `.git`.
+/// Returns the directory itself (the repo root), not the `.git` path.
+///
+/// Used by the MCP server so callers don't have to supply `RECKON_REPO`
+/// when they're already standing inside the repo.
+pub fn find_repo_root(start: &Path) -> Option<PathBuf> {
+    let mut cur: Option<&Path> = Some(start);
+    while let Some(p) = cur {
+        if p.join(".git").exists() {
+            return Some(p.to_path_buf());
+        }
+        cur = p.parent();
+    }
+    None
+}
+
 use evidence::EvidenceStore;
 use indexer::ArtifactIndexer;
 use memoir::MemoirEngine;
