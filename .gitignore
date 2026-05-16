@@ -1,0 +1,22 @@
+/target
+/.reckon
+**/.reckon/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coder3 design handoff (not part of the source)
+/coder3/
+/coder3-handoff.zip
+
+# Embedded model cache
+/models/

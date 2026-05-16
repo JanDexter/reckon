@@ -1,0 +1,14 @@
+{
+  "$schema": "https://modelcontextprotocol.io/schemas/mcp-config.json",
+  "mcpServers": {
+    "reckon": {
+      "command": "reckon-mcp",
+      "args": [],
+      "env": {
+        "RECKON_REPO": "${workspaceFolder}",
+        "RUST_LOG": "info"
+      },
+      "description": "Persistent, version-controlled memory for the codebase. Exposes read_memoir, update_memoir, explain, check_diff, search_postmortems."
+    }
+  }
+}

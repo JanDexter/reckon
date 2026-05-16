@@ -1,0 +1,12 @@
+# Some libgit2-sys releases skip emitting `cargo:rustc-link-lib=advapi32`
+# on MSVC, leaving `OpenProcessToken`, `Reg*`, `GetNamedSecurityInfoW`,
+# and the legacy `Crypt*` APIs unresolved at link time. Force-link the
+# Windows system libraries that libgit2 actually uses.
+[target.x86_64-pc-windows-msvc]
+rustflags = [
+    "-C", "link-arg=advapi32.lib",
+    "-C", "link-arg=userenv.lib",
+    "-C", "link-arg=bcrypt.lib",
+    "-C", "link-arg=ncrypt.lib",
+    "-C", "link-arg=ws2_32.lib",
+]

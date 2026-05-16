@@ -1,0 +1,70 @@
+[package]
+name = "reckon"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.78"
+description = "MCP server that gives every codebase a persistent, version-controlled memory."
+license = "MIT"
+repository = "https://github.com/example/reckon"
+build = "build.rs"
+
+[lib]
+name = "reckon"
+path = "src/lib.rs"
+
+[[bin]]
+name = "reckon"
+path = "src/bin/reckon.rs"
+
+[[bin]]
+name = "reckon-mcp"
+path = "src/bin/reckon_mcp.rs"
+
+[[bin]]
+name = "reckon-seed"
+path = "src/bin/reckon_seed.rs"
+
+[dependencies]
+# MCP
+rmcp = { version = "0.2", features = ["server", "transport-io", "macros"] }
+schemars = "0.8"
+
+# async runtime
+tokio = { version = "1.40", features = ["macros", "rt-multi-thread", "io-std", "io-util", "fs", "sync"] }
+
+# errors / logging
+anyhow = "1.0"
+thiserror = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# git
+git2 = { version = "0.19", default-features = false, features = ["vendored-libgit2"] }
+
+# sqlite (bundled so no system libsqlite needed)
+rusqlite = { version = "0.32", features = ["bundled", "blob"] }
+
+# yaml / json / serde
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+
+# embeddings (ONNX MiniLM-L6-v2)
+fastembed = { version = "4.4", default-features = false, features = ["ort-download-binaries", "hf-hub"] }
+
+# misc
+chrono = { version = "0.4", features = ["serde"] }
+regex = "1.10"
+once_cell = "1.20"
+sha2 = "0.10"
+hex = "0.4"
+clap = { version = "4.5", features = ["derive"] }
+unicode-segmentation = "1.12"
+
+[dev-dependencies]
+tempfile = "3.12"
+pretty_assertions = "1.4"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
