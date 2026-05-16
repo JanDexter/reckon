@@ -12,7 +12,7 @@ This installs three binaries into `~/.cargo/bin/` (already on `$PATH`
 for most Rust users):
 
 ```text
-reckon         # CLI (`reckon why`, `reckon check`, `reckon memoir`, `reckon trace`)
+reckon         # CLI (init, doctor, install, memoir, why, check, trace, completions)
 reckon-mcp     # MCP server over stdio (the thing Bob calls)
 reckon-seed    # demo-repo bootstrap
 ```
@@ -21,91 +21,124 @@ Verify:
 
 ```sh
 reckon --version
-reckon-mcp --help     # exits with a benign error if cwd is not a git repo
+reckon doctor      # 5 preflight checks; runs from inside any git repo
 ```
 
-## 2. Seed the demo repo (optional, for the 90-second demo)
+## 2. Wire Reckon into your MCP host
+
+`reckon install` atomically merges the `mcpServers.reckon` entry into
+the host's MCP config without disturbing any other servers you have
+configured:
 
 ```sh
-reckon-seed --out demo-repo --force
-cd demo-repo
-RECKON_REPO=$PWD reckon memoir payments/retry.py
-RECKON_REPO=$PWD reckon check --diff demo-diff.patch
+reckon install bob        # -> ~/.bob/settings/mcp_settings.json
+reckon install claude     # -> Claude Desktop platform-specific path
+reckon install cursor     # -> ~/.cursor/mcp.json
+reckon install print      # -> stdout (paste into any other host)
 ```
 
-The third command should print the IR-117 tripwire warning block.
+Flags: `--force` to overwrite an existing `reckon` entry, `--repo-path
+PATH` to pin to a specific repo instead of `${workspaceFolder}`.
 
-## 3. Wire Reckon into IBM Bob (or any MCP host)
+Then **restart the host**. Bob / Claude / Cursor spawn `reckon-mcp`
+over stdio on startup, so a restart is required to pick up the new
+server.
 
-MCP servers are configured the same way across every host. Bob, Claude
-Desktop, Cursor, Continue, etc. all consume the same JSON shape under
-their respective settings files. The contents of `bob/mcp.json` in this
-repo are the canonical example:
+For reference, the JSON block `reckon install` writes is:
 
 ```json
 {
   "mcpServers": {
     "reckon": {
       "command": "reckon-mcp",
-      "env": {
-        "RECKON_REPO": "${workspaceFolder}"
-      }
+      "args": [],
+      "env": { "RECKON_REPO": "${workspaceFolder}" },
+      "description": "Persistent, version-controlled memory for the codebase."
     }
   }
 }
 ```
 
-Where to put this depends on the host:
+## 3. (Optional) Make Bob call Reckon automatically
 
-| Host                  | Config file (Windows)                                          |
-|-----------------------|----------------------------------------------------------------|
-| IBM Bob               | `%APPDATA%\Bob\mcp.json` (check Bob's settings UI for the path)|
-| Claude Desktop        | `%APPDATA%\Claude\claude_desktop_config.json`                  |
-| Cursor / Continue     | per-workspace `.cursor/mcp.json` or `~/.continuerc.json`       |
+Bob 1.x supports **Modes** — persona presets you can switch between.
+Add a `Reckon Review` mode:
 
-For IBM Bob specifically: open the settings panel, search for "MCP", and
-either paste the `mcpServers.reckon` block into the JSON editor or point
-Bob at `bob/mcp.json` from this repo. Restart Bob.
+1. **Settings -> Modes -> +**.
+2. **Slug**: `reckon`. **Name**: `Reckon Review`.
+3. **Role definition**: paste the role section of
+   `bob/prompts/reckon-review-mode.md`.
+4. **Custom instructions**: paste the procedural rules from the same
+   file (the "Reckon workflow rules" block).
+5. **Available Tools**: check **Read files**, **Edit files**,
+   **Execute commands**, **Use MCP**, **Switch modes**.
+6. Save. Switch the chat to `Reckon Review` before reviewing a staged
+   diff — Bob will call `reckon.check_diff` automatically.
 
-After Bob restarts it will spawn `reckon-mcp` over stdio with
-`RECKON_REPO` set to the active workspace folder. The five Reckon tools
-(`reckon.read_memoir`, `reckon.update_memoir`, `reckon.explain`,
-`reckon.check_diff`, `reckon.search_postmortems`) become available in
-Bob's chat and Review-mode flows.
-
-## 4. Make Bob call Reckon automatically in Review mode
-
-Drop the contents of `bob/prompts/reckon-review-mode.md` into Bob's
-Review-mode system prompt template. The agent will then call
-`reckon.check_diff` on every staged hunk and surface any tripwire match
-**before** rendering its own review.
-
-`bob/slash-commands.md` lists suggested slash-command bindings if you
-prefer manual invocation.
-
-## 5. Verify the wire
-
-A smoke test of the MCP transport against the seeded demo repo:
+## 4. Verify
 
 ```sh
-cd demo-repo
-RECKON_REPO=$PWD reckon-mcp <<'EOF'
-{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"smoke","version":"0.1"}}}
-{"jsonrpc":"2.0","method":"notifications/initialized"}
-{"jsonrpc":"2.0","id":2,"method":"tools/list"}
-EOF
+cd /path/to/your/repo
+reckon doctor
 ```
 
-You should see one JSON-RPC response per request, the second of which
-lists all five Reckon tools.
+5-row preflight (git repo / `.reckon/` sidecar / `reckon-mcp` on PATH /
+`MEMOIR.md` present / MCP host config detected) with a fix hint per
+failed row.
+
+## 5. Use it
+
+```sh
+reckon init --with-hooks         # scaffold .reckon/ + post-commit hook
+reckon memoir src/               # generate the first MEMOIR.md
+reckon check                     # match staged diff against tripwires
+reckon why src/foo.rs:42-71      # grounded "why is this here?"
+```
+
+`reckon` auto-discovers the repo root by walking up from `$PWD` for
+`.git/`, so you don't need `RECKON_REPO` once inside the repo. Pass
+`--repo <dir>` to override.
+
+For the 90-second demo against the synthetic IR-117 fixture:
+
+```sh
+reckon-seed --out demo-repo --force
+cd demo-repo
+reckon memoir payments/retry.py
+reckon check --diff demo-diff.patch    # IR-117 tripwire fires
+```
+
+## Shell completions
+
+```sh
+reckon completions bash       > /etc/bash_completion.d/reckon
+reckon completions zsh        > /usr/local/share/zsh/site-functions/_reckon
+reckon completions fish       > ~/.config/fish/completions/reckon.fish
+reckon completions powershell | Out-String | Invoke-Expression
+```
 
 ## Notes
 
-- The first call to `reckon.search_postmortems` (or `reckon trace`)
-  downloads a ~90 MB ONNX MiniLM-L6-v2 model under
-  `%LOCALAPPDATA%/fastembed/`. Subsequent calls hit the cache.
-- Every Reckon write is atomic: the engine writes to a `.reckon.tmp`
-  sibling and renames over `MEMOIR.md` so a crash mid-write never leaves
-  a corrupt memoir on disk.
+- First call to `reckon.search_postmortems` (or `reckon trace`)
+  downloads a ~90 MB ONNX MiniLM-L6-v2 model under your platform cache
+  dir (`~/.cache/fastembed/` on Linux, `%LOCALAPPDATA%\fastembed\` on
+  Windows). Subsequent calls hit the cache.
+- Every Reckon write is atomic: writes to a `.reckon.tmp` sibling, then
+  renames over `MEMOIR.md`. A crash mid-write never leaves a corrupt
+  memoir on disk.
 - The `.reckon/` sidecar (SQLite evidence store + caches) is
   `.gitignore`d. `MEMOIR.md` files are intended to be committed.
+- Smoke-test the MCP transport manually if `reckon doctor` is happy but
+  the host still misbehaves:
+
+  ```sh
+  cd /path/to/repo
+  reckon-mcp <<'EOF'
+  {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"smoke","version":"0.1"}}}
+  {"jsonrpc":"2.0","method":"notifications/initialized"}
+  {"jsonrpc":"2.0","id":2,"method":"tools/list"}
+  EOF
+  ```
+
+  Should print two JSON-RPC responses, the second listing all five
+  Reckon tools.
