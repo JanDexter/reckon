@@ -12,6 +12,9 @@
 pub mod style;
 pub mod why;
 pub mod check;
+pub mod doctor;
+pub mod init;
+pub mod install;
 pub mod memoir;
 pub mod trace;
 pub mod wordmark;

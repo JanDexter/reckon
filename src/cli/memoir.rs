@@ -13,12 +13,19 @@ pub struct MemoirArgs {
     pub path: PathBuf,
     pub regen: bool,
     pub no_color: bool,
+    /// If true, skip the streaming step list and produce a single-line
+    /// summary on completion. Used by the git post-commit hook.
+    pub auto: bool,
 }
 
 pub fn run(reckon: &Reckon, args: MemoirArgs) -> crate::Result<()> {
     let theme = if args.no_color { Theme::plain() } else { Theme::auto() };
 
     let module = reckon.indexer.module_for_path(&args.path)?;
+
+    if args.auto {
+        return run_auto(reckon, &module, theme);
+    }
 
     println!(
         "  {} · {} · {}",
@@ -131,4 +138,32 @@ fn capitalize(s: &str) -> String {
         Some(c) => c.to_uppercase().collect::<String>() + chars.as_str(),
         None => String::new(),
     }
+}
+
+/// Quiet variant for `--auto` (post-commit hook). Skips the progress
+/// animation; emits one line with the resulting tripwire count.
+fn run_auto(
+    reckon: &Reckon,
+    module: &std::path::Path,
+    theme: Theme,
+) -> crate::Result<()> {
+    let _ = reckon.memoir.update_module(module)?;
+    let parsed = reckon
+        .memoir
+        .read(module)?
+        .ok_or_else(|| crate::Error::Other(
+            format!("memoir disappeared after update at {}", module.display())
+        ))?;
+    let stats = format!(
+        "memoir updated for {module}: {tw} tripwire(s), tier {tier}",
+        module = module.display(),
+        tw = parsed.frontmatter.tripwires.len(),
+        tier = parsed.frontmatter.evidence_tier,
+    );
+    println!(
+        "  {} {}",
+        Style::green().paint(theme, "✓"),
+        Style::dim().paint(theme, &stats),
+    );
+    Ok(())
 }
