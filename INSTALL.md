@@ -65,7 +65,7 @@ Bob 1.x supports **Modes** — persona presets you can switch between.
 Add a `Reckon Review` mode:
 
 1. **Settings -> Modes -> +**.
-2. **Slug**: `reckon`. **Name**: `Reckon Review`.
+2. **Slug**: `reckon-review` (avoid `reckon` to prevent conflict with the `/reckon` MCP prompt). **Name**: `Reckon Review`.
 3. **Role definition**: paste the role section of
    `bob/prompts/reckon-review-mode.md`.
 4. **Custom instructions**: paste the procedural rules from the same

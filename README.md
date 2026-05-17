@@ -174,7 +174,7 @@ Reckon ships best as a Bob **Mode** — a persona that always consults
 the memoir before approving a change. To create it:
 
 1. In Bob, open **Settings → Modes → +** (or duplicate `Advanced`).
-2. **Slug**: `reckon`. **Name**: `Reckon Review`.
+2. **Slug**: `reckon-review` (avoid `reckon` to prevent conflict with the `/reckon` MCP prompt). **Name**: `Reckon Review`.
 3. **Role definition** — paste `bob/prompts/reckon-review-mode.md`
    (this is the persona).
 4. **Custom instructions** — paste the procedural workflow rules from
