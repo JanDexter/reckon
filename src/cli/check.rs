@@ -11,7 +11,7 @@
 //! Honors `--ci` for the non-interactive variant: warning block, single
 //! exit line, exit code 1.
 
-use std::io::Read;
+use std::io::{self, Read, Write};
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -102,12 +102,34 @@ fn render_warnings_interactive(theme: Theme, warnings: &[Warning]) {
     }
 
     println!("  {}", rule(58));
-    println!(
-        "  {}    {}    {}",
+    print!(
+        "  {}    {}    {} ",
         Style::bold().paint(theme, "[r] revert this hunk"),
         Style::default().paint(theme, "[a] acknowledge and continue"),
         Style::dim().paint(theme, "[?] trace"),
     );
+    io::stdout().flush().unwrap();
+
+    // Read user input
+    let mut input = String::new();
+    if io::stdin().read_line(&mut input).is_ok() {
+        let choice = input.trim().to_lowercase();
+        match choice.as_str() {
+            "r" => {
+                println!("  {} Reverting hunk...", Style::dim().paint(theme, "→"));
+                println!("  {} Feature not yet implemented", Style::amber_bold().paint(theme, "⚠"));
+            }
+            "a" => {
+                println!("  {} Acknowledged. Continuing...", Style::dim().paint(theme, "→"));
+            }
+            "?" => {
+                println!("  {} Trace feature not yet implemented", Style::dim().paint(theme, "→"));
+            }
+            _ => {
+                println!("  {} Invalid choice. Please use 'r', 'a', or '?'", Style::amber_bold().paint(theme, "⚠"));
+            }
+        }
+    }
 }
 
 fn render_warnings_ci(theme: Theme, warnings: &[Warning]) {

@@ -1,6 +1,6 @@
 [package]
 name = "reckon"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version = "1.78"
 description = "MCP server that gives every codebase a persistent, version-controlled memory."
